@@ -1,5 +1,6 @@
 'use strict';
 const retry = require('retry');
+const Promise = require('bluebird');
 
 class AbortError extends Error {
 	constructor(message) {
@@ -18,7 +19,7 @@ class AbortError extends Error {
 	}
 }
 
-module.exports = (input, options) => new Promise((resolve, reject) => {
+module.exports = (input, options) => new Promise((resolve, reject, onCancel) => {
 	options = Object.assign({
 		onFailedAttempt: () => {},
 		retries: 10
@@ -26,12 +27,20 @@ module.exports = (input, options) => new Promise((resolve, reject) => {
 
 	const operation = retry.operation(options);
 
+	if (onCancel) {
+		onCancel(() => {
+			operation.stop();
+			reject(new AbortError('cancel'));
+		});
+	}
+
 	operation.attempt(attemptNumber => {
 		const attemptsLeft = options.retries - attemptNumber;
 
 		return Promise.resolve(attemptNumber)
 			.then(input)
-			.then(resolve, error => {
+			.then(resolve)
+			.catch(error => {
 				if (error instanceof AbortError) {
 					operation.stop();
 					reject(error.originalError);

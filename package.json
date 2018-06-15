@@ -38,6 +38,7 @@
 		"bluebird"
 	],
 	"dependencies": {
+		"bluebird": "^3.5.1",
 		"retry": "^0.12.0"
 	},
 	"devDependencies": {
